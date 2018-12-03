@@ -7,24 +7,33 @@
 #include <iomanip>
 #include <corecrt_math_defines.h>
 
+#define PLOT_TRUNC 5
+
 void test_HL();
 void test_HM(Setting);
 // void test2();
 void test_FD(Setting);
 // void test_CONV();
 // void test_complex();
+void test(Setting);
+
+
 
 int main() {
 
     Setting setting = Setting::defaultSetting();
 
+    setting.d = 30E-9;
+
     // test_HL();
-    // test_HM(setting);
+    test_HM(setting);
     // test2();
-    test_FD(setting);
+    // test_FD(setting);
     // test_CONV();
 
     // test_complex();
+
+    // test(setting);
 
     return 0;
 }
@@ -90,8 +99,8 @@ void test2() {
     double c = hilbertSpace.expectationValue(state3, identityOp);
     double d = hilbertSpace.expectationValue(state3, laplaceOp1);
 
-    plotter::outputToFile(gauss_lap, "./FIELDCAR_gausslap");
-    plotter::outputToFile(gauss1.getField(), "./FIELDCAR_gauss");
+    plotter::plotField(gauss_lap, 10, "./FIELDCAR_gausslap");
+    plotter::plotField(gauss1.getField(), 10, "./FIELDCAR_gauss");
 
     ScalarField wave1 = hilbertSpace.createScalarField(planeWave(   
         2. * M_PI * 1. / 200E-9,
@@ -99,8 +108,8 @@ void test2() {
 
     ScalarField wave1_lap = laplacian(wave1);
 
-    plotter::outputToFile(wave1, "./FIELDCAR_wave1");
-    plotter::outputToFile(wave1_lap, "./FIELDCAR_wave1_lap");
+    plotter::plotField(wave1, 10, "./FIELDCAR_wave1");
+    plotter::plotField(wave1_lap, 10, "./FIELDCAR_wave1_lap");
 }
 
 void test_FD(Setting setting) {
@@ -118,9 +127,12 @@ void test_FD(Setting setting) {
     ScalarField left_sf = left.getField();
     ScalarField right_sf = right.getField();
 
-    plotter::outputToFile(left_sf, "./temp/FIELDCAR_FDL");
-    plotter::outputToFile(right_sf, "./temp/FIELDCAR_FDR");
-    plotter::outputToFile(left_sf ^ right_sf, "./temp/FIELDCAR_FDLR");         
+    plotter::plotField(left_sf ^ left_sf, 
+        PLOT_TRUNC, "./temp/FIELDCAR_FDL");
+    plotter::plotField(right_sf, 
+        PLOT_TRUNC, "./temp/FIELDCAR_FDR");
+    plotter::plotField(left_sf ^ right_sf, 
+        PLOT_TRUNC, "./temp/FIELDCAR_FDLR");         
 
     ComplexHighRes test1 = (left ^ right) * (left ^ right);
 
@@ -128,12 +140,12 @@ void test_FD(Setting setting) {
             hilbertSpace.createOperator(
                     identity_twoSite(setting));   
     
-    ComplexHighRes result = 
-        hilbertSpace.operatorValue(
-            left ^ right, 
-            i_ts, 
-            right ^ left
-        );  
+    // ComplexHighRes result = 
+    //     hilbertSpace.operatorValue(
+    //         left ^ right, 
+    //         i_ts, 
+    //         right ^ left
+    //     );  
 
     return;                        
 }
@@ -144,7 +156,7 @@ void test_CONV() {
 
     ScalarField c3 = fourier::convolution(c1, c2);
 
-    plotter::outputToFile(c3, "./temp/C3");
+    plotter::plotField(c3, 10, "./temp/C3");
 }
 
 void test_complex() {
@@ -159,6 +171,35 @@ void test_complex() {
     auto g = f * f;
 
     auto h = g + g + g;
+
+    return;
+}
+
+void test(Setting setting) {
+
+    HilbertSpace hilbertSpace = HilbertSpace(setting.scale);
+
+    SPState left_up    = OrthofockDarwinWithSpin(hilbertSpace, setting, Orientation::Left,  Spin::Up);
+    SPState left_down  = OrthofockDarwinWithSpin(hilbertSpace, setting, Orientation::Left,  Spin::Down);
+    SPState right_up   = OrthofockDarwinWithSpin(hilbertSpace, setting, Orientation::Right, Spin::Up);
+    SPState right_down = OrthofockDarwinWithSpin(hilbertSpace, setting, Orientation::Right, Spin::Down);
+
+    std::vector<State> states;
+
+    states.push_back((left_up   ^ right_down).antisym()); // (up, down)
+    states.push_back((left_down ^ right_up)  .antisym()); // (down, up)
+    states.push_back((left_up   ^ left_down) .antisym()); // (2, 0)
+    states.push_back((right_up  ^ right_down).antisym()); // (0, 2)
+
+    ComplexHighRes a = left_up    * left_down;
+    ComplexHighRes b = left_down  * left_up;
+    ComplexHighRes c = right_up   * left_up;
+    ComplexHighRes d = right_down * left_down;
+
+    ComplexHighRes a2 = states[0] * states[1];
+    ComplexHighRes b2 = states[1] * states[0];
+    ComplexHighRes c2 = states[2] * states[3];
+    ComplexHighRes d2 = states[3] * states[2];
 
     return;
 }
