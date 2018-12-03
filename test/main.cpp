@@ -23,7 +23,7 @@ int main() {
 
     Setting setting = Setting::defaultSetting();
 
-    setting.d = 30E-9;
+    setting.d = 100E-9;
 
     // test_HL();
     test_HM(setting);
